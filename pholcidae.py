@@ -262,34 +262,36 @@ class Pholcidae:
         links_groups = self._regex.href_links.findall(str(raw_html))
         links = [group[1] for group in links_groups]
         for link in links:
+            # converting relative link into absolute
+            link = urlparse.urljoin(url, link)
+            # only unparsed and not excluded links can be added to heap
+            if link in self._unparsed_urls._set or self._is_excluded(link):
+                continue
             # default priority
             priority = None
-            # is link not excluded?
-            if not self._is_excluded(link):
-                # getting link parts
-                link_info = urlparse.urlparse(link)
-                # if link not relative
-                if link_info.scheme or link_info.netloc:
-                    # link is outside of domain scope
-                    if self._settings.domain not in link_info.netloc:
-                        # stay_in_domain enabled
-                        if self._settings.stay_in_domain:
-                            continue  # throwing out invalid link
-                        else:
-                            # 2 (lowest) priority for "out-of-domain" links
-                            priority = 2
-                        # average priority for "in-domain" links
-                # converting relative link into absolute
-                link = urlparse.urljoin(url, link)
-                # stripping unnecessary elements from link string
-                link = link.strip()
-                # if matches found - writing down and calcutaing priority
-                matches = self._is_valid_link(link)
-                # the "int(not bool(matches))" will produce 0 (higher) priority
-                # for valid links and 1 (lower) priority to invalid links
-                priority = int(not bool(matches)) if not priority else priority
-                # adding link to heap
-                self._unparsed_urls.add(link, matches, priority)
+            # getting link parts
+            link_info = urlparse.urlparse(link)
+            # if link not relative
+            if link_info.scheme or link_info.netloc:
+                # link is outside of domain scope
+                if self._settings.domain not in link_info.netloc:
+                    # stay_in_domain enabled
+                    if self._settings.stay_in_domain:
+                        continue  # throwing out invalid link
+                    else:
+                        # 2 (lowest) priority for "out-of-domain" links
+                        priority = 2
+                    # average priority for "in-domain" links
+            # stripping unnecessary elements from link string
+            link = link.strip()
+            # if matches found - writing down and calcutaing priority
+            matches = self._is_valid_link(link)
+            # the "int(not bool(matches))" will produce 0 (higher) 
+            # priority for valid links and
+            # 1 (lower) priority to invalid links
+            priority = (not bool(matches)) if not priority else priority
+            # adding link to heap
+            self._unparsed_urls.add(link, matches, int(priority))
 
     def _is_valid_link(self, link):
 
@@ -427,9 +429,8 @@ class PriorityList(object):
             Appends element to list with priority.
         """
 
-        if element not in self._set:
-            heapq.heappush(self.heap, (priority, element, matches))
-            self._set.add(element)
+        self._set.add(element)
+        heapq.heappush(self.heap, (priority, element, matches))
 
     def get(self):
 
