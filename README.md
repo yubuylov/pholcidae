@@ -14,7 +14,7 @@ Pholcidae is a tiny Python module allows you to write your own crawl spider fast
 Dependencies
 ------------
 
-* python >= 2.6.x
+* python >= 2.6.x and nothing more...
 
 Basic example
 ------------
